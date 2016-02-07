@@ -7,7 +7,9 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.view.animation.Animation;
+import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -32,6 +34,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setContentView(R.layout.activity_main);
 
         mImageView = (ImageView)findViewById(R.id.imageView);
+        mImageView.setVisibility(View.GONE);
         this.mRotationVectorData = new float[3];
     }
 
@@ -55,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // device is flat just call getOrientation
 
                 SensorManager.getOrientation(var13, orientationVals);
-                System.out.println("FLAT");
+                //System.out.println("FLAT");
             }
             else
             {
@@ -63,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         .remapCoordinateSystem(var13,
                                 SensorManager.AXIS_X, SensorManager.AXIS_Z,
                                 var20);
-                System.out.println("NO FLAT");
+                //System.out.println("NO FLAT");
                 SensorManager.getOrientation(var20, orientationVals);
             }
 
@@ -73,24 +76,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             if (mDirection < 0) {
                 mDirection = mDirection + 360;
             }
+           // mDirection = mDirection % 360;
 
             // create a rotation animation (reverse turn degree degrees)
-            if(Math.abs(mCurrentDegree) - mDirection == 0f && mIsRotationVectorHasData){
-                return;
-            }
-            RotateAnimation ra = new RotateAnimation(mCurrentDegree, -mDirection,
-                    Animation.RELATIVE_TO_SELF, 0.5f,
-                    Animation.RELATIVE_TO_SELF,
-                    0.5f);
+            if(Math.abs(Math.abs(mCurrentDegree) - mDirection) < 300 ){
+                RotateAnimation ra = new RotateAnimation(mCurrentDegree, -mDirection,
+                        Animation.RELATIVE_TO_SELF, 0.5f,
+                        Animation.RELATIVE_TO_SELF,
+                        0.5f);
 
-            // how long the animation will take place
-            ra.setDuration(210);
-            // set the animation after the end of the reservation status
-            ra.setFillAfter(true);
-            System.out.println("DIR : " + -mDirection);
-            System.out.println("DIRCUR : " + mCurrentDegree);
+                // how long the animation will take place
+                ra.setDuration(200);
+                ra.setInterpolator(new LinearInterpolator());
+
+                // set the animation after the end of the reservation status
+                ra.setFillAfter(true);
+                mImageView.startAnimation(ra);
+                System.out.println("DIR : " + mDirection);
+               // System.out.println("DIRCUR : " + mCurrentDegree);
+            }else{
+               // System.out.println("DIRNOTROTATE : " + mCurrentDegree);
+            }
+
             // Start the animation
-            mImageView.startAnimation(ra);
+
             mCurrentDegree = -mDirection;
   /*          if ( (360 >= mDirection && mDirection >= 337.5) || (0 <= mDirection && mDirection <= 22.5) ) mBearingText = "N";
             else if (mDirection > 22.5 && mDirection < 67.5) mBearingText = "NE";
@@ -108,9 +117,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
 
-        if(System.currentTimeMillis() - mStartTime.getTime()<500){
+        if(System.currentTimeMillis() - mStartTime.getTime()<1000){
             mDirection = 1000;
             mIsRotationVectorHasData = false;
+            mImageView.setVisibility(View.VISIBLE);
 
         }else{
             mIsRotationVectorHasData = true;
@@ -129,6 +139,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onResume();
         mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         mRotationMatrixSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        if(mRotationMatrixSensor == null){
+            Toast.makeText(MainActivity.this, "sensors are not available", Toast.LENGTH_LONG).show();
+        }
         mStartTime = new Date();
         mIsRotationVectorHasData=false;
         mSensorManager.registerListener(MainActivity.this,mRotationMatrixSensor,SensorManager
@@ -144,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Toast.makeText(MainActivity.this, "sensors are not calibrated", Toast.LENGTH_LONG).show();
             }else{
                 // textView.setVisibility(View.GONE);
-                Toast.makeText(MainActivity.this, "sensors are calibrated", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(MainActivity.this, "sensors are calibrated", Toast.LENGTH_SHORT).show();
             }
 
         }
