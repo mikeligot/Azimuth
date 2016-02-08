@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.RotateAnimation;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,6 +22,7 @@ import java.util.Date;
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
     private SensorManager mSensorManager;
     private Sensor mRotationMatrixSensor;
+    private Sensor mGameRotationMatrixSensor;
     private float[] mRotationVectorData;
     private float[] mGravityVectorData;
     private float[]mMagneticFieldData;
@@ -29,6 +31,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private ImageView mImageView;
     private TextView mTextViewBearing;
     private TextView mTextViewGravity;
+    private Button mBtnMag;
+    private Button mBtnGame;
     private TextView mTextViewMagnetic;
     private float mCurrentDegree = 0f;
     private String mBearingText;
@@ -50,9 +54,45 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         mTextViewGravity.setText("");
         mTextViewMagnetic = (TextView)findViewById(R.id.textViewMagnetic);
         mTextViewMagnetic.setText("");
+        mBtnGame  = (Button)findViewById(R.id.buttonGame);
+        mBtnMag = (Button)findViewById(R.id.buttonMag);
         this.mRotationVectorData = new float[3];
         mGravityVectorData = new float[3];
         mMagneticFieldData = new float[3];
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mRotationMatrixSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+        mGameRotationMatrixSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR);
+        mSensorMagnitude = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        mSensorGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+        if(mRotationMatrixSensor == null){
+            Toast.makeText(MainActivity.this, "sensors are not available", Toast.LENGTH_LONG).show();
+        }
+        if(mGameRotationMatrixSensor  == null){
+            mBtnGame.setEnabled(false);
+        }
+        mBtnGame.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mStartTime = new Date();
+                mIsRotationVectorHasData=false;
+                mSensorManager.unregisterListener(MainActivity.this);
+                mSensorManager.registerListener(MainActivity.this,mGameRotationMatrixSensor,SensorManager
+                        .SENSOR_DELAY_NORMAL);
+
+            }
+        });
+        mBtnMag.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mStartTime = new Date();
+                mIsRotationVectorHasData=false;
+                mSensorManager.unregisterListener(MainActivity.this);
+                mSensorManager.registerListener(MainActivity.this,mRotationMatrixSensor,SensorManager
+                        .SENSOR_DELAY_NORMAL);
+
+            }
+        });
+
     }
     public static final void fixRotation0(float[] orientation) {//azimuth, pitch, roll
         orientation[1] = -orientation[1];// pitch = -pitch
@@ -91,13 +131,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public void onSensorChanged(SensorEvent event) {
         float TWENTY_FIVE_DEGREE_IN_RADIAN =(float) Math.toRadians(25);
         float ONE_FIFTY_FIVE_DEGREE_IN_RADIAN =(float) Math.toRadians(155);
-        if( event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR ) {
+        if( event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR || event.sensor.getType() == Sensor.TYPE_GAME_ROTATION_VECTOR ) {
 
             System.arraycopy(event.values, 0, mRotationVectorData, 0, mRotationVectorData.length);
 
             float[] var13 = new float[9];
             float[] var20 = new float[9];
-            mTextViewGravity.setText("R: x =" + String.format("%.2f",mRotationVectorData[0]) + " y="+ String
+            mTextViewGravity.setText("VECTOR: x =" + String.format("%.2f",mRotationVectorData[0]) + " y="+ String
                     .format("%.2f", mRotationVectorData[1])+ " z="+ String.format("%.2f",mRotationVectorData[2]));
 
             SensorManager.getRotationMatrixFromVector(var13, mRotationVectorData);
@@ -264,23 +304,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onStop() {
         super.onStop();
        // mSensorManager.flush(this);
+
+       }
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
         mSensorManager.unregisterListener(this);
     }
-
     @Override
     protected void onResume() {
         super.onResume();
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mRotationMatrixSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
-        mSensorMagnitude = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        mSensorGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
-        if(mRotationMatrixSensor == null){
-            Toast.makeText(MainActivity.this, "sensors are not available", Toast.LENGTH_LONG).show();
-        }
-        mStartTime = new Date();
-        mIsRotationVectorHasData=false;
-        mSensorManager.registerListener(MainActivity.this,mRotationMatrixSensor,SensorManager
-                .SENSOR_DELAY_NORMAL);
+
+
      /*   mSensorManager.registerListener(MainActivity.this,mSensorMagnitude,SensorManager
                 .SENSOR_DELAY_NORMAL);
         mSensorManager.registerListener(MainActivity.this,mSensorGravity,SensorManager
